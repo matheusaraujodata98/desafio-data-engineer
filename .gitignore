@@ -18,5 +18,27 @@ data/gold/
 
 # Senhas e Variáveis de Ambiente
 .env
+.env.*
+!.env.example
 .streamlit/
 secrets.toml
+*.pem
+*.key
+*.crt
+*.p12
+credentials.json
+*credentials*.json
+.aws/
+.gcp/
+*_rsa
+*_rsa.pub
+
+# Arquivos de IDE/SO
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/

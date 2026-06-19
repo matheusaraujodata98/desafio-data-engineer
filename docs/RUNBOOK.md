@@ -23,8 +23,10 @@ Este documento descreve os procedimentos de resposta a incidentes para a infraes
 
 **Descrição:** O dashboard de Observabilidade detecta que a `error_rate` da CDN-B ultrapassou o SLO crítico de 5%.
 
+> ℹ️ O dashboard roda tanto localmente (`streamlit run app/app.py`) quanto em produção, publicado em [desafio-data-engineer-globo.streamlit.app](https://desafio-data-engineer-globo.streamlit.app) (Streamlit Community Cloud, lendo a camada Gold via PostgreSQL gerenciado). A detecção do incidente pode partir de qualquer um dos dois ambientes; as ações de mitigação abaixo são as mesmas.
+
 **Sintomas:**
-* Banner vermelho de erro no Dashboard (Abas de Observabilidade).
+* Banner vermelho de erro no Dashboard (Abas de Observabilidade), seja na versão local ou na versão em nuvem.
 * Picos de latência e taxa de erro no gráfico de linhas do `app/app.py`.
 
 **Ações de Mitigação:**
@@ -34,6 +36,22 @@ Este documento descreve os procedimentos de resposta a incidentes para a infraes
 
 **Recuperação e Garantia de Dados:**
 * A reconciliação financeira (Camada Gold) está protegida pela lógica de *Fan-Out* e deduplicação, assegurando que, mesmo com a degradação na rede, o faturamento dos anúncios seja calculado com base nas visualizações efetivas bem-sucedidas.
+
+---
+
+## Incidente 3: Indisponibilidade do Dashboard em Nuvem (Streamlit Cloud)
+
+**Descrição:** O dashboard publicado em [desafio-data-engineer-globo.streamlit.app](https://desafio-data-engineer-globo.streamlit.app) fica inacessível ou apresenta erro de conexão com o banco, enquanto a versão local segue funcional.
+
+**Sintomas:**
+* Erro de conexão exibido na página do app (ex.: falha ao conectar em `POSTGRES_HOST`).
+* App em estado "sleeping" ou não carregando no painel do Streamlit Cloud.
+
+**Ações de Mitigação:**
+1. **Verificar Secrets:** Confirmar no painel do Streamlit Cloud se `POSTGRES_HOST`, `POSTGRES_PORT`, `POSTGRES_DB`, `POSTGRES_USER` e `POSTGRES_PASSWORD` ainda estão configurados e válidos — credenciais rotacionadas no banco gerenciado precisam ser atualizadas manualmente nos Secrets do app.
+2. **Verificar o Banco Gerenciado:** Confirmar se a instância PostgreSQL está ativa e aceitando conexões externas (whitelisting de IP, se aplicável).
+3. **Reiniciar o App:** No painel do Streamlit Cloud, usar a opção "Reboot app" para forçar uma nova inicialização.
+4. **Fallback:** Enquanto o ambiente em nuvem está sendo restaurado, a versão local (`streamlit run app/app.py`, item 4 do "Como Executar") continua disponível como contingência, desde que apontada para um Postgres acessível.
 
 ---
 

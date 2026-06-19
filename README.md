@@ -2,6 +2,14 @@
 **Candidato:** Matheus Araujo
 **Design Doc:** Para detalhes profundos de arquitetura, trade-offs, resolução do cruzamento financeiro e anomalias de QoE, acesse o nosso [DESIGN.md](./docs/DESIGN.md).
 
+## 📊 Dashboard em Produção (Cloud)
+
+**🔗 Acesse ao vivo:** **[desafio-data-engineer-globo.streamlit.app](https://desafio-data-engineer-globo.streamlit.app)**
+
+O dashboard de negócios, que inicialmente rodava apenas localmente (conectado a um PostgreSQL em `localhost`), agora está publicado na nuvem via **Streamlit Community Cloud**. O app está conectado a uma instância PostgreSQL gerenciada, lendo diretamente a camada **Gold** do pipeline (reconciliação financeira + métricas de QoE), sem necessidade de subir nada localmente para visualizar os resultados.
+
+> ℹ️ Para detalhes de como esse deploy foi feito (variáveis de ambiente, secrets, arquitetura de conexão), veja a seção [Deploy no Streamlit Cloud](#deploy-no-streamlit-cloud) mais abaixo.
+
 ## 🚀 Como Executar o Projeto (How to Run)
 
 Este pipeline foi construído para rodar localmente utilizando Docker para infraestrutura e PySpark para o processamento de dados. 
@@ -21,34 +29,50 @@ python generate_all.py --n-sessions 2000
 **3. Executar o Pipeline PySpark (Medallion Architecture)**
 ```bash
 # Ingestão e Validação de Contrato
-python jobs/bronze/ingest_bronze.py
+python jobs/bronze/producer.py
 
 # Processamento Streaming e QoE (Deixe rodando em um terminal)
-python jobs/silver/stream_silver.py
+python jobs/silver/streaming.py
 
 # Reconciliação Financeira Batch
 python jobs/gold/batch_gold.py
 ```
 
-**4. Visualizar o Dashboard de Negócios (Streamlit)**
+**4. Visualizar o Dashboard de Negócios (Streamlit) — versão local**
 ```bash
 streamlit run app/app.py
 ```
+> 💡 Não quer rodar nada localmente? O mesmo dashboard já está publicado na nuvem: **[desafio-data-engineer-globo.streamlit.app](https://desafio-data-engineer-globo.streamlit.app)** (veja detalhes do deploy [aqui](#deploy-no-streamlit-cloud)).
 
 ## Deploy no Streamlit Cloud
 
-O dashboard está preparado para publicação via GitHub + Streamlit Cloud. Para isso:
+O dashboard está publicado via GitHub + Streamlit Cloud, evoluindo de uma execução 100% local (item 4 do "Como Executar") para uma versão acessível publicamente:
 
-1. Publique este repositório no seu GitHub.
-2. No Streamlit Cloud, aponte o app para `app/app.py`.
-3. Configure as variáveis de ambiente do PostgreSQL no painel do app:
-  - `POSTGRES_HOST`
-  - `POSTGRES_PORT`
-  - `POSTGRES_DB`
-  - `POSTGRES_USER`
-  - `POSTGRES_PASSWORD`
+**🔗 App em produção:** https://desafio-data-engineer-globo.streamlit.app
 
-Sem essas variáveis, o dashboard tenta conectar em `localhost`, o que funciona apenas na execução local.
+### Como o deploy foi feito
+
+1. Publicação deste repositório no GitHub.
+2. No [Streamlit Cloud](https://streamlit.io/cloud), o app foi apontado para `app/app.py` como entrypoint.
+3. As variáveis de conexão com o PostgreSQL foram configuradas via **Secrets** do próprio painel do Streamlit Cloud (não no repositório):
+   - `POSTGRES_HOST`
+   - `POSTGRES_PORT`
+   - `POSTGRES_DB`
+   - `POSTGRES_USER`
+   - `POSTGRES_PASSWORD`
+
+### Local vs. Nuvem
+
+| | Execução Local | Execução em Nuvem (atual) |
+|---|---|---|
+| **Onde roda** | `streamlit run app/app.py` na máquina do usuário | Streamlit Community Cloud |
+| **Banco de dados** | PostgreSQL local via Docker Compose (`localhost`) | PostgreSQL gerenciado, acessado remotamente |
+| **Configuração de credenciais** | Arquivo `.env` / `secrets.toml` local (nunca versionado) | Secrets configurados diretamente no painel do Streamlit Cloud |
+| **Acesso** | Apenas na própria máquina | URL pública, qualquer avaliador pode acessar |
+
+⚠️ **Sem as variáveis de ambiente configuradas**, o dashboard tenta conectar em `localhost`, o que funciona apenas na execução local — esse é o fallback proposital para manter o app utilizável em ambos os cenários sem alterar código.
+
+🔒 **Sobre segurança:** nenhuma credencial de banco está commitada neste repositório. O `.gitignore` foi reforçado para bloquear `.env`, `secrets.toml`, `.streamlit/`, chaves (`*.pem`, `*.key`), e arquivos de credenciais de cloud (`credentials.json`, `.aws/`, `.gcp/`) — veja a seção correspondente do arquivo.
 
 ## 🤖 Declaração de Transparência (Uso de IA)
 Conforme solicitado na Fase 5 do desafio, declaro o uso de assistentes de Inteligência Artificial (Copilot / Gemini) durante o desenvolvimento deste projeto. 

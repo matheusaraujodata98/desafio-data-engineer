@@ -3,6 +3,8 @@
 
 Este repositório contém a solução completa para o desafio técnico "Operação Maracanã", com o objetivo de suportar altíssima volumetria (picos de milhões de acessos) com cálculos exatos de audiência, QoE (Quality of Experience) e reconciliação de faturamento de anúncios (SCTE-35).
 
+**📊 Dashboard em produção:** [desafio-data-engineer-globo.streamlit.app](https://desafio-data-engineer-globo.streamlit.app) — versão em nuvem, sem necessidade de subir nada localmente. Detalhes do deploy no [README.md](./README.md#deploy-no-streamlit-cloud).
+
 ---
 
 ## 🚀 Como Executar o Projeto (How to Run)
@@ -33,10 +35,11 @@ python jobs/silver/streaming.py
 python jobs/gold/batch_gold.py
 ```
 
-**4. Visualizar o Dashboard de Negócios (Streamlit)**
+**4. Visualizar o Dashboard de Negócios (Streamlit) — versão local**
 ```bash
 streamlit run app/app.py
 ```
+> 💡 Versão em nuvem disponível em [desafio-data-engineer-globo.streamlit.app](https://desafio-data-engineer-globo.streamlit.app), sem necessidade de rodar o passo acima.
 
 ---
 
