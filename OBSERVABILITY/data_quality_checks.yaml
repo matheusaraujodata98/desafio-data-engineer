@@ -1,0 +1,13 @@
+# Data Quality Checks (estilo Soda/Great Expectations)
+datasets:
+  - table: "silver_audiencia_v3"
+    checks:
+      - schema: "event_id, timestamp, cdn, error_rate"
+      - null_check: "event_id"
+      - range_check: "error_rate between 0 and 1"
+
+  - table: "gold_faturamento_ads"
+    checks:
+      - schema: "advertiser_name, total_revenue_brl"
+      - unique_check: "marker_id"
+      - business_rule: "total_revenue_brl > 0"

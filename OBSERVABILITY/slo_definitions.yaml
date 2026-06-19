@@ -1,0 +1,15 @@
+# SLOs - Operação Maracanã
+service_name: "streaming-audiencia-maracana"
+
+slo_definitions:
+  - id: "qoe_error_rate"
+    objective: "Taxa de erro abaixo de 5% por janela"
+    target: 0.95
+    period: "7d"
+    alert_strategy: "burn_rate_high"
+
+  - id: "gold_reconciliation_timeliness"
+    objective: "Dados financeiros gold disponíveis até 30min após o evento"
+    target: 0.99
+    period: "24h"
+    alert_strategy: "delayed_batch_execution"
