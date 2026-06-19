@@ -1,7 +1,7 @@
 # Dashboard Streamlit e acesso ao PostgreSQL.
 streamlit>=1.36
 psycopg2-binary>=2.9
-
+plotly>=5.18.0
 # Geradores sintéticos do desafio "Operação Maracanã".
 #
 # Filosofia: ZERO dependências obrigatórias. O gerador inteiro roda
