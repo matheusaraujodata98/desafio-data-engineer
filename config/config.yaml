@@ -1,0 +1,30 @@
+# config.yaml — parâmetros do gerador sintético "Operação Maracanã"
+# Documentação dos campos está em generators/common.py:DEFAULT_CONFIG
+
+# Janela temporal do evento (UTC). 105 min = 15 min pre-show + 90 min jogo.
+event_start_utc: "2026-05-20T21:45:00Z"
+event_duration_minutes: 105
+
+# Volumetria
+# - 500    → rápido, bom para iterar (~5s, ~130k eventos)
+# - 2000   → default do desafio (~16s, ~525k eventos, ~260MB JSONL)
+# - 10000  → stress-test (~80s, ~2.6M eventos, ~1.3GB)
+n_sessions: 2000
+
+# Pico de concorrência relativo (usado pela ArrivalCurve)
+peak_concurrency_ratio: 0.65
+
+# Determinismo total. Mesma seed = mesmos arquivos byte-a-byte.
+seed: 42
+
+# Janela em que a cdn-b vai degradar deliberadamente (minutos do evento)
+cdn_b_degradation_window_min: [60, 75]
+
+# Probabilidades das injeções deliberadas
+out_of_order_max_seconds: 15
+duplicate_rate: 0.01      # 1% — emula at-least-once do broker
+schema_v2_rate: 0.005     # 0.5% — força discussão de schema evolution
+device_clock_skew_seconds: 5  # clock dos clients erra ±5s
+
+# Saída
+output_dir: "data/raw"

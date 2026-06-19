@@ -1,0 +1,83 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "content_id": {
+      "type": "string"
+    },
+    "title": {
+      "type": "string"
+    },
+    "genre": {
+      "type": "string"
+    },
+    "is_live": {
+      "type": "boolean"
+    },
+    "is_premium": {
+      "type": "boolean"
+    },
+    "scheduled_start_utc": {
+      "type": "string"
+    },
+    "scheduled_end_utc": {
+      "type": "string"
+    },
+    "rights_window_start": {
+      "type": "string"
+    },
+    "rights_window_end": {
+      "type": "string"
+    },
+    "rights_territories": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "classification": {
+      "type": "string"
+    },
+    "ad_pod_policy": {
+      "type": "string"
+    },
+    "language": {
+      "type": "string"
+    },
+    "duration_min": {
+      "type": "integer"
+    },
+    "eidr_id": {
+      "type": "string"
+    },
+    "gracenote_id": {
+      "type": "string"
+    },
+    "created_at": {
+      "type": "string"
+    },
+    "updated_at": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "content_id",
+    "title",
+    "genre",
+    "is_live",
+    "is_premium",
+    "scheduled_start_utc",
+    "scheduled_end_utc",
+    "rights_window_start",
+    "rights_window_end",
+    "rights_territories",
+    "classification",
+    "ad_pod_policy",
+    "language",
+    "duration_min",
+    "eidr_id",
+    "gracenote_id",
+    "created_at",
+    "updated_at"
+  ]
+}

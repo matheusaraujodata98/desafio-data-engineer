@@ -1,0 +1,51 @@
+# =========================================================================================
+# OPERAÇÃO MARACANÃ - DATA SERVICE LEVEL OBJECTIVES (SLOs)
+# =========================================================================================
+# Este documento define os acordos de nível de serviço para os produtos de dados 
+# das camadas Silver (Streaming) e Gold (Batch).
+# =========================================================================================
+
+domain: "Transmissão Esportiva Ao Vivo"
+owner: "Data Engineering Team - Squad Streaming"
+version: "1.0"
+
+slos:
+  - name: "silver_audiencia_freshness"
+    description: "Atraso máximo aceitável (lateness) para o cálculo do CCV minuto a minuto na Silver."
+    dimension: "Freshness"
+    layer: "Silver"
+    target: "99.9%"
+    threshold: "< 2 minutos de atraso em relação ao event_time (wallclock)"
+    action_if_failed: "Disparar alerta P2 no PagerDuty; verificar lag da consumer group do Kafka."
+
+  - name: "silver_event_id_uniqueness"
+    description: "Garantia de idempotência no processamento de telemetria."
+    dimension: "Uniqueness / Volume"
+    layer: "Silver"
+    target: "100%"
+    threshold: "0 duplicatas de event_id dentro da janela de watermark (15s)."
+    action_if_failed: "Investigar falha no dropDuplicates ou reinício de checkpoint do Spark."
+
+  - name: "bronze_schema_compliance"
+    description: "Conformidade dos eventos de player com o JSON Schema esperado."
+    dimension: "Schema / Completeness"
+    layer: "Bronze"
+    target: "99.9%"
+    threshold: "< 0.1% de eventos enviados para a dead-letter queue (DLQ) por quebra de contrato."
+    action_if_failed: "Notificar engenharia de software (Frontend/Player) sobre quebra de contrato."
+
+  - name: "gold_ad_reconciliation_match_rate"
+    description: "Taxa de cruzamento bem-sucedido entre a telemetria do player e os marcadores de SCTE-35."
+    dimension: "Completeness"
+    layer: "Gold"
+    target: "98.0%"
+    threshold: ">= 98% dos eventos de anúncio devem ter um marker_id correspondente válido."
+    action_if_failed: "Avaliar latência no tópico de marcadores SCTE-35 ou clock skew severo nos devices."
+
+  - name: "gold_revenue_distribution_validity"
+    description: "Validação da consistência matemática do faturamento agregado."
+    dimension: "Distribution / Accuracy"
+    layer: "Gold"
+    target: "100%"
+    threshold: "O faturamento de cada anúncio (receita_real_do_anuncio) não pode ser negativo (>= 0)."
+    action_if_failed: "Falhar o job batch imediatamente (circuit breaker) e reter a publicação no dashboard."

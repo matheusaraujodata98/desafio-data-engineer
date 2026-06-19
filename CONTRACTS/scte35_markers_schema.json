@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "marker_id": {
+      "type": "string"
+    },
+    "channel": {
+      "type": "string"
+    },
+    "splice_command": {
+      "type": "string"
+    },
+    "event_id_scte": {
+      "type": "integer"
+    },
+    "out_of_network": {
+      "type": "boolean"
+    },
+    "pts_time": {
+      "type": "integer"
+    },
+    "wallclock": {
+      "type": "string"
+    },
+    "duration_s": {
+      "type": "integer"
+    },
+    "break_type": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "marker_id",
+    "channel",
+    "splice_command",
+    "event_id_scte",
+    "out_of_network",
+    "pts_time",
+    "wallclock",
+    "duration_s",
+    "break_type"
+  ]
+}

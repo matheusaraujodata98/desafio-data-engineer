@@ -1,0 +1,12 @@
+# Dashboard Streamlit e acesso ao PostgreSQL.
+streamlit>=1.36
+psycopg2-binary>=2.9
+
+# Geradores sintéticos do desafio "Operação Maracanã".
+#
+# Filosofia: ZERO dependências obrigatórias. O gerador inteiro roda
+# com a biblioteca padrão do Python (>=3.10).
+#
+# As deps abaixo são opcionais para geração local dos datasets.
+PyYAML>=6.0
+pyarrow>=15.0

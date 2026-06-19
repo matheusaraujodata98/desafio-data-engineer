@@ -1,0 +1,91 @@
+services:
+  # 1. O Broker (Redpanda)
+  redpanda:
+    image: docker.redpanda.com/redpandadata/redpanda:v23.2.19
+    container_name: maracana-redpanda
+    restart: unless-stopped
+    command:
+      - redpanda
+      - start
+      - --smp 1
+      - --overprovisioned
+      - --kafka-addr
+      - internal://0.0.0.0:9092,external://0.0.0.0:19092
+      - --advertise-kafka-addr
+      - internal://redpanda:9092,external://localhost:19092
+    ports:
+      - "19092:19092"
+      - "9092:9092"
+    volumes:
+      - redpanda_data:/var/lib/redpanda/data
+    healthcheck:
+      test: ["CMD-SHELL", "bash -ec 'exec 3<>/dev/tcp/127.0.0.1/9092'"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    networks:
+      - maracana
+
+  # 2. Bootstrap de tópicos para desenvolvimento local
+  redpanda-init:
+    image: docker.redpanda.com/redpandadata/redpanda:v23.2.19
+    container_name: maracana-redpanda-init
+    restart: "no"
+    depends_on:
+      redpanda:
+        condition: service_healthy
+    entrypoint:
+      - sh
+      - -ec
+      - |
+        rpk topic create player-events scte35-markers content-metadata ad-decisions --brokers redpanda:9092 || true
+    networks:
+      - maracana
+
+  # 3. Interface Gráfica para o Broker (Isso salva vidas no debug!)
+  redpanda-console:
+    image: docker.redpanda.com/redpandadata/console:v2.3.1
+    container_name: maracana-redpanda-console
+    restart: unless-stopped
+    entrypoint: /app/console
+    ports:
+      - "8081:8080"
+    environment:
+      KAFKA_BROKERS: redpanda:9092
+      KAFKA_TLS_ENABLED: "false"
+    depends_on:
+      redpanda:
+        condition: service_healthy
+    networks:
+      - maracana
+
+  # 4. O Banco Analítico (Camada Gold)
+  postgres:
+    image: postgres:15-alpine
+    container_name: maracana-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-maracana_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-maracana_pass}
+      POSTGRES_DB: ${POSTGRES_DB:-maracana_gold}
+    ports:
+      - "15432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-maracana_user} -d ${POSTGRES_DB:-maracana_gold}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    networks:
+      - maracana
+
+volumes:
+  redpanda_data:
+  pgdata:
+
+networks:
+  maracana:
+    driver: bridge

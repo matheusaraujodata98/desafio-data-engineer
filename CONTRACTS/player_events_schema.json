@@ -1,0 +1,110 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "event_id": {
+      "type": "string"
+    },
+    "session_id": {
+      "type": "string"
+    },
+    "user_id": {
+      "type": "string"
+    },
+    "timestamp": {
+      "type": "string"
+    },
+    "event_type": {
+      "type": "string"
+    },
+    "content_id": {
+      "type": "string"
+    },
+    "is_live": {
+      "type": "boolean"
+    },
+    "device": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string"
+        },
+        "model": {
+          "type": "string"
+        },
+        "os": {
+          "type": "string"
+        },
+        "app_version": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "model",
+        "os",
+        "app_version"
+      ]
+    },
+    "geo": {
+      "type": "object",
+      "properties": {
+        "region": {
+          "type": "string"
+        },
+        "state": {
+          "type": "string"
+        },
+        "city": {
+          "type": "string"
+        },
+        "isp": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "region",
+        "state",
+        "city",
+        "isp"
+      ]
+    },
+    "cdn": {
+      "type": "string"
+    },
+    "bitrate_kbps": {
+      "type": "integer"
+    },
+    "buffer_length_ms": {
+      "type": "integer"
+    },
+    "playhead_position_s": {
+      "type": "integer"
+    },
+    "error_code": {
+      "type": [
+        "integer",
+        "null"
+      ]
+    },
+    "network_type": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "event_id",
+    "session_id",
+    "user_id",
+    "timestamp",
+    "event_type",
+    "content_id",
+    "is_live",
+    "device",
+    "geo",
+    "cdn",
+    "bitrate_kbps",
+    "buffer_length_ms",
+    "playhead_position_s",
+    "error_code"
+  ]
+}
