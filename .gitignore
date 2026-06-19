@@ -1,6 +1,22 @@
+# Ambientes Virtuais
 .venv/
+venv/
+env/
+
+# Cache do Python e Spark
 __pycache__/
-.ipynb_checkpoints/
-data/raw/
+*.pyc
+.pytest_cache/
+spark-warehouse/
+.ivy2/
+
+# Arquivos pesados de dados (Evita bloqueio de tamanho no GitHub)
+data/raw/*.jsonl
+data/raw/*.parquet
+data/silver/
+data/gold/
+
+# Senhas e Variáveis de Ambiente
 .env
-.DS_Store
+.streamlit/
+secrets.toml
