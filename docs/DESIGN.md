@@ -1,5 +1,5 @@
 # 🏟️ Operação Maracanã - Solução de Engenharia de Dados
-**Candidato:** Matheus Araujo
+**Candidato:** 
 
 Este repositório contém a solução completa para o desafio técnico "Operação Maracanã", com o objetivo de suportar altíssima volumetria (picos de milhões de acessos) com cálculos exatos de audiência, QoE (Quality of Experience) e reconciliação de faturamento de anúncios (SCTE-35).
 

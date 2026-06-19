@@ -1,5 +1,5 @@
 # 🏟️ Operação Maracanã - Solução de Engenharia de Dados
-**Candidato:** Matheus Araujo
+**Candidato:**
 **Design Doc:** Para detalhes profundos de arquitetura, trade-offs, resolução do cruzamento financeiro e anomalias de QoE, acesse o nosso [DESIGN.md](./docs/DESIGN.md).
 
 ## 📊 Dashboard em Produção (Cloud)
