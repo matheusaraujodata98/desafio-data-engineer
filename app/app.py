@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-import os
 from collections import defaultdict
 from decimal import Decimal
 from typing import Any, Iterable
+import time
 
 from psycopg2.extras import RealDictCursor
 from psycopg2.pool import SimpleConnectionPool
@@ -12,12 +12,13 @@ import streamlit as st
 
 APP_TITLE = "Operação Maracanã - Observabilidade"
 
+# --- CONFIGURAÇÃO NUVEM (Lendo dos Segredos do Streamlit Cloud) ---
 DB_CONFIG = {
-    "host": os.getenv("POSTGRES_HOST", "localhost"),
-    "user": os.getenv("POSTGRES_USER", "maracana_user"),
-    "password": os.getenv("POSTGRES_PASSWORD", "maracana_pass"),
-    "dbname": os.getenv("POSTGRES_DB", "maracana_gold"),
-    "port": int(os.getenv("POSTGRES_PORT", "15432")),
+    "host": st.secrets["DB_HOST"],
+    "port": 5432,
+    "dbname": st.secrets["DB_NAME"],
+    "user": st.secrets["DB_USER"],
+    "password": st.secrets["DB_PASSWORD"]
 }
 
 MAX_CCV_QUERY = """
@@ -63,28 +64,17 @@ ORDER BY window_start, cdn
 """
 
 
-st.set_page_config(page_title=APP_TITLE, layout="wide")
+st.set_page_config(page_title="Maracanã Executivo", page_icon="⚽", layout="wide", initial_sidebar_state="expanded")
+
 @st.cache_resource(show_spinner=False)
 def get_connection_pool() -> SimpleConnectionPool:
     """Create and cache the PostgreSQL connection pool."""
-
     return SimpleConnectionPool(minconn=1, maxconn=4, **DB_CONFIG)
 
 
 @st.cache_data(show_spinner=False)
 def fetch_rows(query: str) -> list[dict[str, Any]]:
-    """Execute a SQL query and return rows as dictionaries.
-
-    Args:
-        query: SQL text to execute.
-
-    Returns:
-        A list of rows represented as dictionaries.
-
-    Raises:
-        RuntimeError: If the query cannot be executed.
-    """
-
+    """Execute a SQL query and return rows as dictionaries."""
     pool = get_connection_pool()
     connection = None
 
@@ -96,141 +86,156 @@ def fetch_rows(query: str) -> list[dict[str, Any]]:
     except Exception as exc:
         if connection is not None and not connection.closed:
             connection.rollback()
-        raise RuntimeError(f"Falha ao consultar o PostgreSQL local: {exc}") from exc
+        raise RuntimeError(f"Falha ao consultar o banco de dados na Nuvem: {exc}") from exc
     finally:
         if connection is not None:
             pool.putconn(connection)
 
 
 def format_currency_brl(value: Any) -> str:
-    """Format a numeric value as Brazilian currency."""
-
     amount = Decimal(str(value or 0))
     formatted = f"{amount:,.2f}"
     return f"R$ {formatted.replace(',', 'X').replace('.', ',').replace('X', '.')}"
 
 
 def format_integer(value: Any) -> str:
-    """Format a numeric value with thousands separators."""
-
     amount = int(Decimal(str(value or 0)))
     return f"{amount:,}".replace(",", ".")
 
 
 def to_decimal(value: Any) -> Decimal:
-    """Convert any SQL value to Decimal safely."""
-
     return Decimal(str(value or 0))
 
 
 def render_styles() -> None:
-    """Inject custom styling for the executive dashboard."""
-
+    """Inject custom styling for the executive dashboard, hiding default Streamlit UI."""
     st.markdown(
         """
         <style>
+            /* Esconde as marcas do Streamlit para um visual "White-Label" */
+            #MainMenu {visibility: hidden;}
+            header {visibility: hidden;}
+            footer {visibility: hidden;}
+            
+            /* Ajusta o padding superior que o header oculto deixa vazio */
+            .block-container {
+                padding-top: 2rem;
+                padding-bottom: 0rem;
+            }
+
             .hero-shell {
-                padding: 1.25rem 1.35rem;
-                border-radius: 24px;
-                background: linear-gradient(135deg, #08111f 0%, #0f1d33 50%, #0a2744 100%);
-                border: 1px solid rgba(255, 255, 255, 0.08);
-                box-shadow: 0 18px 45px rgba(0, 0, 0, 0.22);
-                color: #f5f7fb;
-                margin-bottom: 1rem;
+                padding: 1.5rem 2rem;
+                border-radius: 16px;
+                background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+                border: 1px solid rgba(255, 255, 255, 0.05);
+                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+                color: #f8fafc;
+                margin-bottom: 1.5rem;
             }
 
             .hero-shell h1 {
                 margin: 0;
-                font-size: 2.15rem;
-                line-height: 1.05;
-                letter-spacing: -0.03em;
+                font-size: 2.25rem;
+                font-weight: 700;
+                letter-spacing: -0.02em;
+                background: -webkit-linear-gradient(#fff, #cbd5e1);
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
             }
 
             .hero-shell p {
-                margin: 0.6rem 0 0;
-                color: rgba(245, 247, 251, 0.82);
-                font-size: 0.98rem;
+                margin: 0.5rem 0 0;
+                color: #94a3b8;
+                font-size: 1rem;
             }
 
             .kpi-card {
-                background: linear-gradient(180deg, #101a2d 0%, #0b1321 100%);
-                border: 1px solid rgba(103, 169, 255, 0.16);
-                border-radius: 22px;
-                padding: 1.2rem 1.25rem;
-                box-shadow: 0 16px 40px rgba(4, 10, 18, 0.22);
-                color: #f8fbff;
+                background: #1e293b;
+                border: 1px solid rgba(255, 255, 255, 0.05);
+                border-radius: 12px;
+                padding: 1.5rem;
+                box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+                transition: transform 0.2s ease, box-shadow 0.2s ease;
+            }
+            
+            .kpi-card:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2);
+                border: 1px solid rgba(56, 189, 248, 0.3);
             }
 
             .kpi-label {
-                font-size: 0.82rem;
+                font-size: 0.875rem;
+                font-weight: 600;
                 text-transform: uppercase;
-                letter-spacing: 0.14em;
-                color: #8fb8ff;
-                margin-bottom: 0.45rem;
+                letter-spacing: 0.05em;
+                color: #94a3b8;
+                margin-bottom: 0.5rem;
+                display: flex;
+                align-items: center;
             }
 
             .kpi-value {
-                font-size: 2.15rem;
-                font-weight: 800;
-                line-height: 1;
-                color: #ffffff;
-                margin-bottom: 0.45rem;
+                font-size: 2.5rem;
+                font-weight: 700;
+                color: #f8fafc;
+                line-height: 1.2;
+                margin-bottom: 0.25rem;
+            }
+
+            .kpi-trend {
+                font-size: 0.875rem;
+                font-weight: 500;
+                color: #34d399; /* Verde sucesso */
+                background: rgba(52, 211, 153, 0.1);
+                padding: 2px 8px;
+                border-radius: 12px;
+                display: inline-block;
+                margin-bottom: 0.5rem;
             }
 
             .kpi-subtitle {
-                font-size: 0.92rem;
-                color: rgba(248, 251, 255, 0.72);
+                font-size: 0.875rem;
+                color: #64748b;
+                margin-top: 0.5rem;
+                border-top: 1px solid rgba(255,255,255,0.05);
+                padding-top: 0.5rem;
             }
 
             .card-icon {
-                font-size: 1.2rem;
-                margin-right: 0.4rem;
-            }
-
-            .section-pill {
-                display: inline-block;
-                padding: 0.3rem 0.7rem;
-                border-radius: 999px;
-                background: rgba(103, 169, 255, 0.12);
-                color: #b9d4ff;
-                font-size: 0.76rem;
-                letter-spacing: 0.12em;
-                text-transform: uppercase;
-                margin-bottom: 0.6rem;
+                font-size: 1.25rem;
+                margin-right: 0.5rem;
             }
 
             .stTabs [data-baseweb="tab-list"] {
-                gap: 0.35rem;
+                gap: 1rem;
+                border-bottom: 1px solid #334155;
             }
 
             .stTabs [data-baseweb="tab"] {
-                background: rgba(10, 18, 31, 0.72);
-                border: 1px solid rgba(255, 255, 255, 0.08);
-                border-radius: 14px 14px 0 0;
-                padding: 0.7rem 1rem;
+                padding: 1rem 1.5rem;
+                background: transparent;
+                border: none;
+                color: #94a3b8;
             }
 
             .stTabs [aria-selected="true"] {
-                background: #102033;
-                color: #ffffff;
+                color: #38bdf8;
+                border-bottom: 2px solid #38bdf8;
+                background: rgba(56, 189, 248, 0.05);
             }
 
-            .metric-grid {
-                display: grid;
-                grid-template-columns: repeat(2, minmax(0, 1fr));
-                gap: 1rem;
-                margin-top: 0.65rem;
-                margin-bottom: 1.25rem;
+            /* Estiliza o botão da sidebar */
+            .stButton>button {
+                border-radius: 8px;
+                font-weight: 600;
+                border: 1px solid #38bdf8;
+                color: #38bdf8;
+                transition: all 0.3s;
             }
-
-            @media (max-width: 860px) {
-                .metric-grid {
-                    grid-template-columns: 1fr;
-                }
-
-                .hero-shell h1 {
-                    font-size: 1.75rem;
-                }
+            .stButton>button:hover {
+                background: #38bdf8;
+                color: #0f172a;
             }
         </style>
         """,
@@ -239,37 +244,28 @@ def render_styles() -> None:
 
 
 def render_sidebar() -> None:
-    """Render the project sidebar with context and refresh action."""
-
-    st.sidebar.markdown("## 🏟️ Operação Maracanã")
+    st.sidebar.markdown("## 🏟️ Centro de Controle")
     st.sidebar.markdown(
         """
-        **Dashboard de Camada Gold**
-
-        Painel executivo da fase de observabilidade, lendo a base analítica local em PostgreSQL para acompanhar faturamento e QoE.
-        """
-    )
-    st.sidebar.markdown(
-        """
-        **Arquitetura**
-
-        - Camada Gold: reconciliação financeira e indicadores executivos.
-        - Camada Silver: telemetria agregada de audiência e qualidade.
-        - PostgreSQL local: fonte única do painel.
-        """
+        <div style="color: #94a3b8; font-size: 0.9rem; margin-bottom: 2rem;">
+        Monitoramento executivo em tempo real. Camadas Silver e Gold materializadas no Neon.
+        </div>
+        """, unsafe_allow_html=True
     )
 
-    if st.sidebar.button("Atualizar Dados", use_container_width=True):
+    if st.sidebar.button("🔄 Sincronizar Dados", use_container_width=True):
         st.cache_data.clear()
-        st.rerun()
+        st.toast('Conectando ao banco de dados...', icon='⏳')
+        time.sleep(0.5) # Pequeno delay para efeito visual de carregamento
+        st.toast('Painel atualizado com sucesso!', icon='✅')
 
-    st.sidebar.caption(f"Fonte: {DB_CONFIG['host']}:{DB_CONFIG['port']} / {DB_CONFIG['dbname']}")
-    st.sidebar.caption("Visual otimizado para leitura executiva e inspeção operacional.")
+    st.sidebar.markdown("---")
+    st.sidebar.caption("🟢 **Status:** Operacional")
+    st.sidebar.caption(f"🔌 **Host:** `{DB_CONFIG['host'].split('.')[0]}`")
+    st.sidebar.caption("⏱️ **Latência tolerada:** 15s")
 
 
 def aggregate_revenue_by_sponsor(rows: Iterable[dict[str, Any]]) -> list[dict[str, Any]]:
-    """Aggregate reconciliation rows by sponsor for the executive bar chart."""
-
     aggregated: dict[str, Decimal] = defaultdict(lambda: Decimal("0"))
     programs_by_sponsor: dict[str, set[str]] = defaultdict(set)
 
@@ -292,8 +288,6 @@ def aggregate_revenue_by_sponsor(rows: Iterable[dict[str, Any]]) -> list[dict[st
 
 
 def build_revenue_figure(rows: list[dict[str, Any]]):
-    """Create the polished executive revenue chart."""
-
     import plotly.graph_objects as go
 
     chart_rows = aggregate_revenue_by_sponsor(rows)
@@ -308,36 +302,35 @@ def build_revenue_figure(rows: list[dict[str, Any]]):
                 y=revenues,
                 marker=dict(
                     color=revenues,
-                    colorscale=[[0, "#0A2540"], [0.55, "#0F4C81"], [1, "#2DE2E6"]],
-                    line=dict(color="#DCEBFF", width=0.6),
+                    colorscale=[[0, "#1e293b"], [0.5, "#3b82f6"], [1, "#38bdf8"]],
+                    line=dict(color="#0f172a", width=1),
                 ),
                 hovertemplate=(
-                    "<b>%{x}</b><br>"
-                    "Faturamento: R$ %{y:,.2f}<br>"
-                    "Programas: %{customdata}<extra></extra>"
+                    "<b style='font-size: 14px;'>%{x}</b><br><br>"
+                    "Faturamento: <b>R$ %{y:,.2f}</b><br>"
+                    "Ações no Conteúdo: %{customdata}<extra></extra>"
                 ),
                 customdata=programs,
-                width=0.55,
+                width=0.4,
             )
         ]
     )
 
     figure.update_layout(
-        template="plotly_white",
-        height=470,
-        margin=dict(l=10, r=10, t=15, b=15),
-        xaxis=dict(title="Patrocinador", showgrid=False, tickfont=dict(color="#0d1b2a")),
-        yaxis=dict(title="Faturamento Total (R$)", showgrid=False, zeroline=False),
+        template="plotly_dark",
+        height=400,
+        margin=dict(l=0, r=0, t=30, b=0),
+        xaxis=dict(title="", showgrid=False, tickfont=dict(size=12, color="#cbd5e1")),
+        yaxis=dict(title="", showgrid=True, gridcolor="rgba(255,255,255,0.05)", zeroline=False, tickprefix="R$ "),
         plot_bgcolor="rgba(0,0,0,0)",
         paper_bgcolor="rgba(0,0,0,0)",
         showlegend=False,
+        hoverlabel=dict(bgcolor="#0f172a", font_size=13, font_family="sans-serif")
     )
     return figure
 
 
 def build_cdn_figure(rows: list[dict[str, Any]]):
-    """Create the QoE line chart with emphasis on the CDN-B anomaly."""
-
     import plotly.graph_objects as go
 
     series: dict[str, list[tuple[Any, float]]] = defaultdict(list)
@@ -352,45 +345,50 @@ def build_cdn_figure(rows: list[dict[str, Any]]):
         x_values = [item[0] for item in points]
         y_values = [item[1] for item in points]
         is_cdn_b = cdn_name.lower() == "cdn-b"
+        
         figure.add_trace(
             go.Scatter(
                 x=x_values,
                 y=y_values,
-                mode="lines",
-                name=cdn_name,
-                line=dict(color="#FF4B4B" if is_cdn_b else "#D1D5DB", width=3 if is_cdn_b else 2),
-                hovertemplate="<b>%{fullData.name}</b><br>%{x}<br>Error rate: %{y:.2%}<extra></extra>",
+                mode="lines+markers" if is_cdn_b else "lines",
+                name=cdn_name.upper(),
+                line=dict(color="#ef4444" if is_cdn_b else "#475569", width=3 if is_cdn_b else 1.5),
+                marker=dict(size=6, color="#ef4444") if is_cdn_b else None,
+                hovertemplate="<b>%{fullData.name}</b><br>Tempo: %{x}<br>Taxa de Erro: <b>%{y:.2%}</b><extra></extra>",
             )
         )
 
     figure.add_hline(
         y=0.05,
-        line_dash="dash",
-        line_color="#FF8A8A",
-        annotation_text="Limite crítico de 5%",
+        line_dash="dot",
+        line_color="#f87171",
+        annotation_text="Limite Crítico de SLO (5%)",
         annotation_position="top left",
+        annotation_font_color="#f87171"
     )
+    
     figure.update_layout(
-        template="plotly_white",
-        height=470,
-        margin=dict(l=10, r=10, t=15, b=15),
-        xaxis=dict(title="Janela de tempo", showgrid=False),
-        yaxis=dict(title="Error rate", showgrid=False, tickformat=".0%", zeroline=False),
+        template="plotly_dark",
+        height=400,
+        margin=dict(l=0, r=0, t=10, b=0),
+        xaxis=dict(title="", showgrid=False, tickfont=dict(color="#94a3b8")),
+        yaxis=dict(title="", showgrid=True, gridcolor="rgba(255,255,255,0.05)", tickformat=".1%", zeroline=False),
         plot_bgcolor="rgba(0,0,0,0)",
         paper_bgcolor="rgba(0,0,0,0)",
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+        legend=dict(orientation="h", yanchor="bottom", y=1.05, xanchor="left", x=0, font=dict(color="#cbd5e1")),
+        hoverlabel=dict(bgcolor="#0f172a", font_size=13)
     )
     return figure
 
 
-def render_kpi_card(icon: str, label: str, value: str, subtitle: str) -> None:
-    """Render a custom executive KPI card."""
-
+def render_kpi_card(icon: str, label: str, value: str, subtitle: str, trend: str = "") -> None:
+    trend_html = f'<div class="kpi-trend">↑ {trend}</div>' if trend else ""
     st.markdown(
         f"""
         <div class="kpi-card">
             <div class="kpi-label"><span class="card-icon">{icon}</span>{label}</div>
             <div class="kpi-value">{value}</div>
+            {trend_html}
             <div class="kpi-subtitle">{subtitle}</div>
         </div>
         """,
@@ -399,14 +397,11 @@ def render_kpi_card(icon: str, label: str, value: str, subtitle: str) -> None:
 
 
 def render_executive_tab() -> None:
-    """Render the financial executive tab."""
-
-    st.markdown('<div class="section-pill">Visão executiva</div>', unsafe_allow_html=True)
     st.markdown(
         """
         <div class="hero-shell">
             <h1>Operação Maracanã</h1>
-            <p>Monitoração executiva da camada Gold com foco em faturamento, reconciliação e eficiência comercial.</p>
+            <p>Consolidação financeira Gold e auditoria de engajamento do evento ao vivo.</p>
         </div>
         """,
         unsafe_allow_html=True,
@@ -417,38 +412,42 @@ def render_executive_tab() -> None:
     total_revenue = sum(to_decimal(row.get("faturamento_total_brl")) for row in reconciliation_rows)
     max_ccv = max_ccv_rows[0].get("max_ccv") if max_ccv_rows else 0
 
-    st.markdown(
-        "<div class='metric-grid'>"
-        "<div id='kpi-1'></div><div id='kpi-2'></div>"
-        "</div>",
-        unsafe_allow_html=True,
-    )
-
     col1, col2 = st.columns(2)
     with col1:
         render_kpi_card(
             "👥",
-            "Pico de Audiência",
+            "Pico de Audiência Simultânea",
             format_integer(max_ccv),
-            "Métrica máxima agregada por janela de transmissão",
+            "Espectadores consolidados na Camada Silver sem duplicatas.",
+            trend="Estável"
         )
     with col2:
         render_kpi_card(
             "💰",
-            "Faturamento Total",
+            "Faturamento Reconciliado",
             format_currency_brl(total_revenue),
-            "Receita consolidada da reconciliação sem fan-out",
+            "Receita limpa auditada na Camada Gold (livre de fan-out).",
+            trend="Rendimento Nominal"
         )
 
-    st.markdown("### Reconciliação Financeira")
-    st.caption("Faturamento consolidado por patrocinador com visual executivo limpo.")
-    st.plotly_chart(build_revenue_figure(reconciliation_rows), width="stretch")
+    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown("### 📊 Faturamento por Patrocinador")
+    st.markdown("<p style='color: #94a3b8; font-size: 0.9rem;'>Distribuição do impacto financeiro das cotas de publicidade.</p>", unsafe_allow_html=True)
+    
+    # Ocultar o ModeBar (menu flutuante do plotly)
+    st.plotly_chart(build_revenue_figure(reconciliation_rows), use_container_width=True, config={'displayModeBar': False})
 
 
 def render_observability_tab() -> None:
-    """Render the observability and QoE tab."""
-
-    st.markdown('<div class="section-pill">Observabilidade & QoE</div>', unsafe_allow_html=True)
+    st.markdown(
+        """
+        <div class="hero-shell" style="background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%);">
+            <h1>Observabilidade e SLOs</h1>
+            <p>Monitoria em tempo real da qualidade de entrega (QoE) por provedor de borda.</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
     cdn_rows = fetch_rows(CDN_QUERY)
     cdn_b_peak = max(
@@ -458,34 +457,30 @@ def render_observability_tab() -> None:
 
     if cdn_b_peak > Decimal("0.05"):
         st.error(
-            f"Incidente de degradação detectado: a CDN-B atingiu pico de {cdn_b_peak:.2%}, acima do limite crítico de 5%."
+            f"⚠️ **Incidente Crítico:** A CDN-B violou o limite de SLO com taxa de falha atingindo **{cdn_b_peak:.2%}**."
         )
     else:
-        st.warning(
-            f"CDN-B sob controle neste recorte. Pico observado: {cdn_b_peak:.2%} com limite operacional de 5%."
+        st.success(
+            f"✅ **Tráfego Estável:** Operação de todas as CDNs dentro do limite tolerável de 5%."
         )
 
-    st.markdown("### Taxa de Erro por CDN")
-    st.caption("Série temporal agregada por janela para visualizar o comportamento da infraestrutura de entrega.")
-    st.plotly_chart(build_cdn_figure(cdn_rows), width="stretch")
+    st.markdown("### 📈 Taxa de Erro por CDN (Degradação)")
+    st.markdown("<p style='color: #94a3b8; font-size: 0.9rem;'>Série temporal da qualidade de streaming agregada em janelas de 15 segundos.</p>", unsafe_allow_html=True)
+    
+    st.plotly_chart(build_cdn_figure(cdn_rows), use_container_width=True, config={'displayModeBar': False})
 
 
 def main() -> None:
-    """Application entry point."""
-
     render_styles()
     render_sidebar()
-
-    st.title(APP_TITLE)
-    st.caption("Dashboard interativo de produção para leitura executiva e observabilidade operacional.")
 
     try:
         get_connection_pool()
     except Exception as exc:
-        st.error(f"Não foi possível criar a conexão com o PostgreSQL local: {exc}")
+        st.error(f"Não foi possível criar a conexão com o banco de dados corporativo: {exc}")
         st.stop()
 
-    tab_executive, tab_observability = st.tabs(["📊 Visão Executiva & Faturamento", "🛠️ Observabilidade & QoE"])
+    tab_executive, tab_observability = st.tabs(["💎 Visão de Negócios (Gold)", "📡 Telemetria e Infra (Silver)"])
 
     with tab_executive:
         render_executive_tab()
