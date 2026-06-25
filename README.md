@@ -1,5 +1,4 @@
-# 🏟️ Operação Maracanã - Solução de Engenharia de Dados
-**Candidato:**
+# 🏟️ Operação Maracanã - Case Técnico de Engenharia de Dados - GLOBO
 **Design Doc:** Para detalhes profundos de arquitetura, trade-offs, resolução do cruzamento financeiro e anomalias de QoE, acesse o nosso [DESIGN.md](./docs/DESIGN.md).
 
 ## 📊 Dashboard em Produção (Cloud)
